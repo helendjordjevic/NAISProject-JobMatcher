@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Query
 from typing import List
 from app.crud_operations.candidates import create_candidate, get_candidate_by_id, update_candidate, delete_candidate, filter_candidates
 from app.enums.candidates_enums import EducationLevel, SKILLS_POOL
@@ -10,14 +10,28 @@ router = APIRouter(prefix="/candidates", tags=["Candidates"])
 def filter_candidates_endpoint(
     skill_query: str | None = None,
     education_level: str | None = None,
-    min_years_experience: float | None = None
+    min_years_experience: float | None = None,
+    page: int = Query(1, description="Stranica rezultata"),
+    page_size: int = Query(20, description="Broj rezultata po stranici")
+
 ):
-    results = filter_candidates(
+    all_matches = filter_candidates(
         skill_query=skill_query,
         education_level=education_level,
-        min_years_experience=min_years_experience
+        min_years_experience=min_years_experience,
+        top_k=500 
     )
-    return results
+
+    start = (page - 1) * page_size
+    end = start + page_size
+    paged_matches = all_matches[start:end]
+
+    return {
+        "count": len(all_matches),
+        "page": page,
+        "page_size": page_size,
+        "results": paged_matches
+    }
 
 @router.post("/")
 def create_candidate_endpoint(candidate: CandidateCreate):

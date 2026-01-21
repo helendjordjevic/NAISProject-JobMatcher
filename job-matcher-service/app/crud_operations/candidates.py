@@ -93,7 +93,8 @@ def filter_candidates(
     skill_query: str | None = None,   
     education_level: str | None = None,
     min_years_experience: float | None = None,
-    top_k: int = 50
+    top_k: int = 200,
+
 ):
     filter_query = {}
 
@@ -110,25 +111,29 @@ def filter_candidates(
         # dummy vector
         embedding = [0.0] * 1536
 
-    response = index.query(
-        namespace="candidates",
-        vector=embedding,
-        top_k=top_k,
-        include_metadata=True,
-        filter=filter_query if filter_query else None
-    )
+    all_matches = []
 
-    matches = []
-    for match in response.matches:
-        match_dict = {
-            "id": match.id,
-            "metadata": match.metadata
-        }
-        if skill_query:  
-            match_dict["score"] = match.score
-        matches.append(match_dict)
+    while True:
+        response = index.query(
+            namespace="candidates",
+            vector=embedding,
+            top_k=top_k,
+            include_metadata=True,
+            filter=filter_query if filter_query else None,
+        )
 
-    return {
-        "count": len(matches),  
-        "matches": matches      
-    }
+        #print("Response:", response)
+        print("Next token:", getattr(response, "next_token", None))
+        print("Broj match-eva u ovom batch-u:", len(response.matches))
+
+        all_matches = []
+        for match in response.matches:
+            match_dict = {
+                "id": match.id,
+                "metadata": match.metadata
+            }
+            if skill_query:
+                match_dict["score"] = match.score
+            all_matches.append(match_dict)
+
+        return all_matches
