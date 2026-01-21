@@ -1,3 +1,4 @@
+from urllib import response
 import uuid
 
 from app.enums.candidates_enums import EducationLevel, SKILLS_POOL
@@ -79,3 +80,55 @@ def update_candidate(candidate_id: str, **kwargs) -> bool:
 
     index.upsert(vectors=[vector], namespace="candidates")
     return True
+
+def generate_skills_embedding(skill_query: str):
+    text = f"Skills: {skill_query}"
+    response = client.embeddings.create(
+        model="text-embedding-3-small",
+        input=text
+    )
+    return response.data[0].embedding
+
+def filter_candidates(
+    skill_query: str | None = None,   
+    education_level: str | None = None,
+    min_years_experience: float | None = None,
+    top_k: int = 50
+):
+    filter_query = {}
+
+    if education_level:
+        filter_query["education_level"] = {"$eq": education_level}
+
+    if min_years_experience is not None:
+        filter_query["years_experience"] = {"$gte": min_years_experience}
+
+# ako imamo skill generišem embedding za semantičko pretraživanje
+    if skill_query:
+        embedding = generate_skills_embedding(skill_query)
+    else:
+        # dummy vector
+        embedding = [0.0] * 1536
+
+    response = index.query(
+        namespace="candidates",
+        vector=embedding,
+        top_k=top_k,
+        include_metadata=True,
+        filter=filter_query if filter_query else None
+    )
+
+    matches = []
+    for match in response.matches:
+        match_dict = {
+            "id": match.id,
+            "metadata": match.metadata
+        }
+        if skill_query:  
+            match_dict["score"] = match.score
+        matches.append(match_dict)
+
+    return {
+        "count": len(matches),  
+        "matches": matches      
+    }

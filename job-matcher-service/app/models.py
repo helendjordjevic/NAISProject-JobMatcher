@@ -1,5 +1,6 @@
 from pydantic import BaseModel
 from typing import List, Optional
+from app.enums.job_ads_enums import ExperienceLevel, JobType, WorkMode
 
 class CandidateCreate(BaseModel):
     firstname: str
@@ -36,3 +37,18 @@ class JobAdUpdate(BaseModel):
     work_mode: Optional[str] = None
     city: Optional[str] = None
     country: Optional[str] = None
+
+class JobAdResult(BaseModel):
+    id: str
+    title: str
+    description: str
+    required_experience_level: str
+    job_type: str
+    work_mode: str
+    city: str
+    country: str
+    score: Optional[float] = None
+
+class JobAdsResponse(BaseModel):
+    count: int
+    results: List[JobAdResult]

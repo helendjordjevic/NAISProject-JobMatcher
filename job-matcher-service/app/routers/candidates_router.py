@@ -1,10 +1,23 @@
 from fastapi import APIRouter, HTTPException
 from typing import List
-from app.crud_operations.candidates import create_candidate, get_candidate_by_id, update_candidate, delete_candidate
+from app.crud_operations.candidates import create_candidate, get_candidate_by_id, update_candidate, delete_candidate, filter_candidates
 from app.enums.candidates_enums import EducationLevel, SKILLS_POOL
 from app.models import CandidateCreate, CandidateUpdate
 
 router = APIRouter(prefix="/candidates", tags=["Candidates"])
+
+@router.get("/filter")
+def filter_candidates_endpoint(
+    skill_query: str | None = None,
+    education_level: str | None = None,
+    min_years_experience: float | None = None
+):
+    results = filter_candidates(
+        skill_query=skill_query,
+        education_level=education_level,
+        min_years_experience=min_years_experience
+    )
+    return results
 
 @router.post("/")
 def create_candidate_endpoint(candidate: CandidateCreate):
