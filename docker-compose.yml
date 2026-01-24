@@ -1,0 +1,31 @@
+services:
+  job-matcher-service:
+    build: ./job-matcher-service
+    env_file:
+      - ./job-matcher-service/.env
+    ports:
+      - "8001:8000"
+
+  job-filter-service:
+    build: ./job-filter-service
+    env_file:
+      - ./job-filter-service/.env
+    ports:
+      - "8002:8000"
+    depends_on:
+      - elasticsearch
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.11.3
+    container_name: elasticsearch
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - ES_JAVA_OPTS=-Xms512m -Xmx512m
+    ports:
+      - "9200:9200"
+    volumes:
+      - es_data:/usr/share/elasticsearch/data
+
+volumes:
+  es_data:
