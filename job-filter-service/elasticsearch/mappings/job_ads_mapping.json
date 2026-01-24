@@ -1,0 +1,14 @@
+{
+  "mappings": {
+    "properties": {
+      "job_id": { "type": "keyword" },
+      "title": { "type": "text" },
+      "description": { "type": "text" },
+      "required_experience_level": { "type": "keyword" },
+      "job_type": { "type": "keyword" },
+      "work_mode": { "type": "keyword" },
+      "city": { "type": "keyword" },
+      "country": { "type": "keyword" }
+    }
+  }
+}

@@ -1,0 +1,22 @@
+[
+  {
+    "candidate_id": "0cd29894-19bf-492b-b4a3-34f48f420972",
+    "firstname": "Marko",
+    "lastname": "Markovic",
+    "education_level": "bachelor",
+    "years_experience": 3,
+    "skills": ["Java", "SQL"],
+    "city": "Belgrade",
+    "country": "Serbia"
+  },
+  {
+    "candidate_id": "c4ab19ed-14e1-47b3-aade-c85fafc7826c",
+    "firstname": "Ana",
+    "lastname": "Petrovic",
+    "education_level": "master",
+    "years_experience": 5,
+    "skills": ["Python", "ML"],
+    "city": "Novi Sad",
+    "country": "Serbia"
+  }
+]

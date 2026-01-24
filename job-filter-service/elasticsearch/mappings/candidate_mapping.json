@@ -1,0 +1,14 @@
+{
+  "mappings": {
+    "properties": {
+      "candidate_id": { "type": "keyword" },
+      "firstname": { "type": "text" },
+      "lastname": { "type": "text" },
+      "education_level": { "type": "keyword" },
+      "years_experience": { "type": "integer" },
+      "skills": { "type": "keyword" },
+      "city": { "type": "keyword" },
+      "country": { "type": "keyword" }
+    }
+  }
+}
