@@ -1,0 +1,145 @@
+NAIS Project
+-------------------------------------------------------------
+JOB MATCHER SERVICE
+-------------------------------------------------------------
+Struktura baze podataka: 
+- Koristim Pinecone 
+=> index = cluster - moj Job Matcher index - logicka celina baze podataka
+=> collections = tabele - 
+
+1. Candidates (kandidati)   : 
+embedding kandidata - vector polje
+
+candidate_id   (string - UUID)
+firstname (string)
+lastname (string)
+education_level (Enum - junior / bachelor / master)
+years_experience (int)
+skills (array<string> - iz predefinisanog skupa)
+city (string)
+country (string)
+
+					     
+2. JobAds (oglasi za posao) :
+embedding oglasa - vector polje
+
+job_id (string - UUID)
+title (string)
+description (string)
+required_experience_level (Enum - junior / mid / senior)
+job_type (Enum - full-time / part-time / internship / contract)
+work_mode (Enum - remote / onsite / hybrid)
+city (string)
+country (string)
+
+-------------------------------------------------------
+NOTES:
+- Kolekcije realizovane korišćenjem namespace mehanizma
+
+- Vektorizovano polje: koristi se za pretragu po sličnosti (Pinecone index). - VALUES polje
+
+- Kada u Pinecone-u kreiraš index sa dimension i metric="cosine", to je “formiranje indeksa određenog tipa” za tvoje vektore.
+values = vektorizovano polje
+metric="cosine" = tip indeksa
+Sve je automatski optimizovano za pretragu i filtriranje
+
+- Nevektorizovana polja: mogu da se koriste za filtriranje, sortiranje i dodatne kriterijume. - METADATA polja
+
+- u job matcher service aktiviram venv
+venv\Scripts\activate
+
+- moram biti job matcher service
+http://127.0.0.1:8000/docs
+uvicorn app.main:app --reload
+
+---------------------------------------------------------
+- Koristimo dva tipa pretrage:
+
+KANDIDAT - stim da ovaj je sa iteratorom 20 + Koliko ostane
+1. Prvi je filter po metadata kandidata, gde direktno filtriramo po poljima kao što su nivo iskustva i nivo skolovanja. 
+2. Drugi je semantičko pretraživanje pomoću embeddinga, gde unos korisnikove veštine pretvaramo u vektor i tražimo najbliže slične unose u bazi. Score koji dobijamo iz semantičkog pretraživanja pokazuje koliko je rezultat sličan korisnikovom upitu.
+
+OGLAS - bey iteratora samo prvih 50 ako ima vise ne prikazuje ih
+1. Prvi je filter po metadata oglasa za posao, gde direktno filtriramo po poljima kao što su zahtevani nivo iskustva, job type i work mode. 
+2. Drugi je semantičko pretraživanje pomoću embeddinga, gde unos title posla pretvaramo u vektor i tražimo najbliže slične unose u bazi. Score koji dobijamo iz semantičkog pretraživanja pokazuje koliko je rezultat sličan korisnikovom upitu.
+---------------------------------------------------------------
+- Pinecone nema pravi next_token za query ali logička paginacija je potpuno validna
+
+---------------------------------------------------------------
+JOB FILTER SERVICE
+---------------------------------------------------------------
+Struktura baze podataka:
+1. Candidates:
+{
+  "candidate_id": "uuid", - keyword tacno taj 
+  "firstname": "string", - text
+  "lastname": "string", - text
+  "education_level": "junior/bachelor/master", - keyword
+  "years_experience": 3, - integer
+  "skills": ["Java", "SQL"], - keyword
+  "city": "Belgrade", - keyword
+  "country": "Serbia" - keyword
+}
+
+curl pravljenje indexa:
+curl -X PUT "http://localhost:9200/candidates" \
+-H "Content-Type: application/json" \
+-d @mappings/candidate_mapping.json
+
+curl dodavanje sample podataka:
+curl -X POST "http://localhost:9200/_bulk" -H "Content-Type: application/json" --data-binary @sample_data/candidates_sample.txt
+
+curl pogledati podatak:
+curl -X GET "http://localhost:9200/candidates/_search?pretty=true&size=10&q=*:*"
+
+
+2. JobAds
+{
+  "job_id": "uuid", - keyword
+  "title": "Software Engineer", - text
+  "description": "Develop web applications...", - text
+  "required_experience_level": "junior",  - keyword
+  "job_type": "full-time", - keyword
+  "work_mode": "remote", - keyword
+  "city": "Belgrade", - keyword
+  "country": "Serbia"- keyword
+}
+
+curl pravljenje indexa:
+curl -X PUT "http://localhost:9200/job_ads" \
+-H "Content-Type: application/json" \
+-d @mappings/job_ads_mapping.json
+
+curl dodavanje sample podataka:
+curl -X POST "http://localhost:9200/_bulk" -H "Content-Type: application/json" --data-binary @sample_data/job_ads_sample.txt
+
+curl pogledati podatak:
+curl -X GET "http://localhost:9200/job_ads/_search?pretty=true&size=10&q=*:*"
+
+--------------------------------------------------------------
+POKRENUTI ZA BASH SKRIPTU - populate
+
+- U PWS: wsl -l -v => Ubuntu je defult
+- wsl -d Ubuntu => ulaz u ubuntu
+- uname -a => provera Linux verzije
+
+BITI U elasticsearch folderu:
+vidim indexe sve: 
+curl http://localhost:9200/_cat/indices?v
+
+vidim polja i njegove tipove sve:
+curl http://localhost:9200/candidates/_mapping?pretty
+curl http://localhost:9200/job_ads/_mapping?pretty
+
+Kibana za elasticsearch bazu:
+http://localhost:5601
+* Menu -> stack management -> index management -> svi indexi -> kliknem na index od kojeg zelim podatke
+
+- yellow = normalno za single-node lokalni setup (nema gde da se replicira primary shard)
+- Koristi se za dostupnost i failover u produkcionim sistemima
+- Ako jedan node padne, replica preuzima podatke → cluster ostaje green.
+- primary shard radi → možeš ubacivati i pretraživati podatke
+
+Docker: 
+docker-compose up --build
+docker-compose down
