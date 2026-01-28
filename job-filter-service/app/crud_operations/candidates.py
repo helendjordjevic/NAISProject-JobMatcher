@@ -23,10 +23,6 @@ def read_candidate(cid):
     res = es.get(index="candidates", id=cid)
     return res["_source"]
 
-def search_candidates(query):
-    res = es.search(index="candidates", query=query)
-    return [hit["_source"] for hit in res["hits"]["hits"]]
-
 def update_candidate(cid, updates: dict):
     es.update(index="candidates", id=cid, doc=updates)
     print(f"Kandidat {cid} ažuriran")
@@ -34,3 +30,90 @@ def update_candidate(cid, updates: dict):
 def delete_candidate(cid):
     es.delete(index="candidates", id=cid)
     print(f"Kandidat {cid} obrisan")
+
+def search_by_experience_and_city(payload: dict):
+    filters = []
+
+    if payload.get("min_years") is not None:
+        filters.append({
+            "range": {
+                "years_experience": {
+                    "gte": payload["min_years"]
+                }
+            }
+        })
+
+    if payload.get("city"):
+        filters.append({
+            "term": {
+                "city": payload["city"]   # samo "city" posto je već keyword u mappingu
+            }
+        })
+
+    if filters:
+        query = {
+            "query": {
+                "bool": {
+                    "filter": filters
+                }
+            }
+        }
+    else:
+        query = {"query": {"match_all": {}}}
+
+    sort = []
+    if payload.get("min_years") is not None:
+        sort.append({"years_experience": {"order": "desc"}})
+
+    if sort:
+        query["sort"] = sort
+
+    if payload.get("min_years") is not None:
+        query["aggs"] = {
+            "avg_experience": {"avg": {"field": "years_experience"}}
+        }
+
+    return query
+
+
+def search_by_skills_and_education(payload: dict):
+    filters = []
+
+    if payload.get("skills"):
+        filters.append({
+            "terms": {
+                "skills": payload["skills"]
+            }
+        })
+
+    if payload.get("education_level"):
+        filters.append({
+            "term": {
+                "education_level": payload["education_level"]
+            }
+        })
+
+    query = {
+        "query": {
+            "bool": {
+                "filter": filters
+               
+            }
+        },
+        "sort": [
+            {
+                payload.get("sort_by", "years_experience"): {
+                    "order": payload.get("order", "desc")
+                }
+            }
+        ],
+        "aggs": {
+            "by_education_level": {
+                "terms": {
+                    "field": "education_level"
+                }
+            }
+        }
+    }
+
+    return query

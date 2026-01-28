@@ -5,12 +5,47 @@ import uuid
 from app.models import CandidateCreate, CandidateUpdate, CandidateBase
 from app.database import es
 from elasticsearch.exceptions import NotFoundError
+from app.crud_operations.candidates import search_by_experience_and_city, search_by_skills_and_education
 
 
 router = APIRouter(
     prefix="/candidates",
     tags=["Candidates"]
 )
+
+@router.post("/search/by-experience-city", response_model=dict)
+def search_candidates_by_experience_and_city(payload: dict):
+    try:
+        query = search_by_experience_and_city(payload)
+        res = es.search(index="candidates", body=query)
+
+        results = [hit["_source"] for hit in res["hits"]["hits"]]
+        avg_exp = res.get("aggregations", {}).get("avg_experience", {}).get("value")
+
+        return {
+            "results": results,
+            "avg_experience": avg_exp
+        }
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    
+
+@router.post("/search/by-skills-education", response_model=dict)
+def search_candidates_by_skills_and_education(payload: dict):
+    
+    try:
+        query = search_by_skills_and_education(payload)
+        res = es.search(index="candidates", body=query)
+
+        return {
+            "results": [hit["_source"] for hit in res["hits"]["hits"]],
+            "education_stats": res["aggregations"]["by_education_level"]["buckets"]
+        }
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 
 @router.post("/", response_model=dict)
 def create_candidate_endpoint(candidate: CandidateCreate):
@@ -30,11 +65,6 @@ def read_candidate_endpoint(cid: str):
         raise HTTPException(status_code=404, detail="Kandidat nije pronađen")
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-    
-@router.post("/search", response_model=List[CandidateBase])
-def search_candidates_endpoint(query: dict):
-    res = es.search(index="candidates", query=query)
-    return [hit["_source"] for hit in res["hits"]["hits"]]
 
 
 @router.put("/{cid}", response_model=dict)

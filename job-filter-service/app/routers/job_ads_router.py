@@ -43,21 +43,6 @@ def read_job_endpoint(jid: str):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.post("/search", response_model=List[JobAdResult])
-def search_jobs_endpoint(query: dict):
-    res = es.search(index="job_ads", query=query)
-
-    results = []
-    for hit in res["hits"]["hits"]:
-        results.append({
-            "id": hit["_id"],
-            **hit["_source"],
-            "score": hit["_score"]
-        })
-
-    return results
-
-
 @router.put("/{jid}", response_model=dict)
 def update_job_endpoint(jid: str, updates: JobAdUpdate):
     try:
