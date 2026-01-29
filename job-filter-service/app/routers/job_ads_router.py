@@ -2,14 +2,29 @@ from fastapi import APIRouter, HTTPException
 from typing import List
 import uuid
 from elasticsearch.exceptions import NotFoundError
-
 from app.database import es
 from app.models import JobAdCreate, JobAdUpdate, JobAdResult
+from app.crud_operations.job_ads import search_by_desc_exp
 
 router = APIRouter(
     prefix="/job_ads",
     tags=["Job Ads"]
 )
+
+@router.post("/search", response_model=dict)
+def search_jobs(payload: dict):
+    try:
+        query = search_by_desc_exp(payload)
+        res = es.search(index="job_ads", body=query)
+
+        return {
+            "results": [hit["_source"] for hit in res["hits"]["hits"]],
+            "jobs_by_city": res["aggregations"]["jobs_by_city"]["buckets"]
+        }
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    
 
 @router.post("/", response_model=dict)
 def create_job_endpoint(job: JobAdCreate):
