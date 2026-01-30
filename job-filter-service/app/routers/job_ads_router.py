@@ -1,15 +1,60 @@
-from fastapi import APIRouter, HTTPException
+import os
+from fastapi import APIRouter, HTTPException, Query
 from typing import List
 import uuid
 from elasticsearch.exceptions import NotFoundError
 from app.database import es
 from app.models import JobAdCreate, JobAdUpdate, JobAdResult
+from app.enums.job_ads_enums import JobType, ExperienceLevel, WorkMode
 from app.crud_operations.job_ads import search_by_desc_exp, create_job_ad_saga, create_job_ad_saga_simulation
+from fastapi.responses import FileResponse
+from app.generate_scripts.es_reports import fetch_job_ads, generate_pdf_job_ads, fetch_complex_jobads, generate_complex_jobads_pdf
+import os
 
 router = APIRouter(
     prefix="/job_ads",
     tags=["Job Ads"]
 )
+
+@router.get("/complex_report", summary="Generate Complex JobAds PDF report")
+def generate_complex_report(
+    description_keywords: str = Query(..., description="Keywords to search in description"),
+    work_mode: WorkMode = Query(None, description="Work mode filter: remote / onsite / hybrid")
+):
+    try:
+        jobs = fetch_complex_jobads(description_keywords, work_mode)
+        if not jobs:
+            raise HTTPException(status_code=404, detail="No jobs found for the given keywords and work mode")
+
+        pdf_file = generate_complex_jobads_pdf(jobs, description_keywords, work_mode)
+        return FileResponse(pdf_file, media_type="application/pdf", filename=os.path.basename(pdf_file))
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/report", summary="Generate JobAds PDF report")
+def generate_jobads_report(
+    job_type: JobType = Query(None, description="Job type filter"),
+    experience_level: ExperienceLevel = Query(None, description="Experience level filter")
+):
+    filters = {
+        "job_type": job_type.value if job_type else None,
+        "experience_level": experience_level.value if experience_level else None
+    }
+
+    try:
+        jobs = fetch_job_ads(filters)
+
+        if not jobs:
+            raise HTTPException(status_code=404, detail="No jobs found for the given filters")
+
+        pdf_file = generate_pdf_job_ads(jobs, filters)
+        return FileResponse(pdf_file, media_type="application/pdf", filename=os.path.basename(pdf_file))
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 
 @router.post("/search", response_model=dict)
 def search_jobs(payload: dict):

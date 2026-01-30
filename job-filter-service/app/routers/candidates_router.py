@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field
 from typing import List, Optional, Any
 import uuid
@@ -6,12 +6,38 @@ from app.models import CandidateCreate, CandidateUpdate, CandidateBase
 from app.database import es
 from elasticsearch.exceptions import NotFoundError
 from app.crud_operations.candidates import search_by_experience_and_city, search_by_skills_and_education
-
+from fastapi.responses import FileResponse
+from app.generate_scripts.es_reports import fetch_candidates, generate_pdf_candidates   
+from app.enums.candidates_enums import EducationLevel
+import os
 
 router = APIRouter(
     prefix="/candidates",
     tags=["Candidates"]
 )
+
+@router.get("/report", summary="Generate Candidates PDF report")
+def generate_candidates_report(
+    education_level: EducationLevel = Query(None, description="Education level filter"),
+    min_years_experience: int = Query(None, description="Minimal years of experience")
+):
+    filters = {
+        "education_level": education_level.value if education_level else None,
+        "min_years_experience": min_years_experience
+    }
+
+    try:
+        candidates = fetch_candidates(filters)
+
+        if not candidates:
+            raise HTTPException(status_code=404, detail="No candidates found for the given filters")
+
+        pdf_file = generate_pdf_candidates(candidates, filters)
+        return FileResponse(pdf_file, media_type="application/pdf", filename=os.path.basename(pdf_file))
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 
 @router.post("/search/by-experience-city", response_model=dict)
 def search_candidates_by_experience_and_city(payload: dict):
