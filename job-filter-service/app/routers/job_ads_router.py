@@ -4,7 +4,7 @@ import uuid
 from elasticsearch.exceptions import NotFoundError
 from app.database import es
 from app.models import JobAdCreate, JobAdUpdate, JobAdResult
-from app.crud_operations.job_ads import search_by_desc_exp
+from app.crud_operations.job_ads import search_by_desc_exp, create_job_ad_saga, create_job_ad_saga_simulation
 
 router = APIRouter(
     prefix="/job_ads",
@@ -26,19 +26,42 @@ def search_jobs(payload: dict):
         raise HTTPException(status_code=500, detail=str(e))
     
 
+#   @router.post("/", response_model=dict)
+#   def create_job_endpoint(job: JobAdCreate):
+#    jid = str(uuid.uuid4())
+
+#    doc = job.dict()
+#    doc["job_id"] = jid
+
+#    es.index(index="job_ads", id=jid, document=doc)
+
+#    return {
+#        "job_id": jid,
+#        "message": "Oglas kreiran"
+#    }
+
 @router.post("/", response_model=dict)
-def create_job_endpoint(job: JobAdCreate):
-    jid = str(uuid.uuid4())
+def create_job_ad_endpoint(job: JobAdCreate):
+    try:
+        jid = create_job_ad_saga(job)
 
-    doc = job.dict()
-    doc["job_id"] = jid
-
-    es.index(index="job_ads", id=jid, document=doc)
-
-    return {
-        "job_id": jid,
-        "message": "Oglas kreiran"
-    }
+        return {"job_id": jid, "message": "Oglas kreiran i u ES i u Pinecone"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    
+@router.post("/simulation", response_model=dict)
+def create_job_ad_endpoint(
+    job: JobAdCreate,
+    simulate_pinecone_fail: bool = False
+):
+    try:
+        jid = create_job_ad_saga_simulation(
+            job,
+            simulate_pinecone_fail=simulate_pinecone_fail
+        )
+        return {"job_id": jid, "message": "Saga uspešna"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.get("/{jid}", response_model=JobAdResult)
