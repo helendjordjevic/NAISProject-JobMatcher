@@ -41,7 +41,7 @@ def generate_pdf_job_ads(jobs, filters):
     pdf.set_auto_page_break(auto=False)  # isključujemo automatski break
 
     pdf.set_font("Arial", "B", 16)
-    pdf.cell(0, 10, "JobAds Report", ln=True, align="C")
+    pdf.cell(0, 10, "JobAds Report - by job type and required experience level", ln=True, align="C")
 
     pdf.set_font("Arial", "", 12)
     pdf.cell(0, 10, f"Generated on: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}", ln=True)
@@ -125,7 +125,7 @@ def generate_pdf_candidates(candidates, filters):
     pdf.set_auto_page_break(auto=False, margin=15)
 
     pdf.set_font("Arial", "B", 16)
-    pdf.cell(0, 10, "Candidates Report", ln=True, align="C")
+    pdf.cell(0, 10, "Candidates Report - by education level and minimum years of experience", ln=True, align="C")
 
     pdf.set_font("Arial", "", 12)
     pdf.cell(0, 10, f"Generated on: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}", ln=True)
@@ -220,7 +220,7 @@ def generate_complex_jobads_pdf(jobs, description_keywords, work_mode):
     pdf.set_auto_page_break(auto=False, margin=15)
 
     pdf.set_font("Arial", "B", 16)
-    pdf.cell(0, 10, "Complex JobAds Report", ln=True, align="C")
+    pdf.cell(0, 10, "Complex JobAds Report - by description keywords and work mode", ln=True, align="C")
 
     pdf.set_font("Arial", "", 12)
     pdf.cell(0, 10, f"Generated on: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}", ln=True)

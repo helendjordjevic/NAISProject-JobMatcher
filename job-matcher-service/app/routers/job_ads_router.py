@@ -1,10 +1,27 @@
-from fastapi import APIRouter, HTTPException
-from typing import List
+from fastapi import APIRouter, HTTPException, Query
+from typing import List, Optional
 from app.crud_operations.job_ads import create_job_ad, get_job_ad_by_id, update_job_ad, delete_job_ad, filter_job_ads
 from app.enums.job_ads_enums import JobType, ExperienceLevel, WorkMode
 from app.models import JobAdCreate, JobAdUpdate, JobAdsResponse
+from app.generate_reports.pinecone_reports import filter_job_ads_for_report, generate_job_ads_pdf
+from fastapi.responses import FileResponse
 
 router = APIRouter(prefix="/job_ads", tags=["Job Ads"])
+
+@router.get("/report", summary="Pinecone JobAds PDF report")
+def generate_job_ads_report(
+    job_type: List[str] = Query(None, description="Filter by job type"),
+    city: Optional[str] = Query(None, description="Filter by city")
+):
+    cities = [city] if city else None
+    job_ads = filter_job_ads_for_report(job_types=job_type, cities=cities, top_k=10)
+
+    if not job_ads:
+        raise HTTPException(status_code=404, detail="No job ads found for given filters")
+
+    pdf_path = generate_job_ads_pdf(job_ads, job_type=job_type, city=city)
+    return FileResponse(pdf_path, media_type="application/pdf", filename=pdf_path.split("/")[-1])
+
 
 @router.get("/filter", response_model=JobAdsResponse)
 def filter_job_ads_endpoint(
